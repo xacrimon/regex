@@ -1540,7 +1540,6 @@ pub enum State {
     Look {
         /// The look-around assertion that must be satisfied before moving
         /// to `next`.
-        #[bincode(with_serde)]
         look: Look,
         /// The state to transition to if the look-around assertion is
         /// satisfied.

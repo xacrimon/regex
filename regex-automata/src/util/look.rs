@@ -58,9 +58,7 @@ use crate::util::{escape::DebugByte, utf8};
 /// have epsilon transitions at all. In this case, they are compiled into the
 /// automaton itself, at the expense of more states than what would be required
 /// without an assertion.
-#[derive(
-    Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Look {
     /// Match the beginning of text. Specifically, this matches at the starting
     /// position of the input.
@@ -234,6 +232,34 @@ impl Look {
             Look::WordStartHalfUnicode => '◀',
             Look::WordEndHalfUnicode => '▶',
         }
+    }
+}
+
+impl bincode::Encode for Look {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> core::result::Result<(), bincode::error::EncodeError> {
+        let val = self.as_repr();
+        bincode::Encode::encode(&val, encoder)?;
+        Ok(())
+    }
+}
+
+impl<Context> bincode::Decode<Context> for Look {
+    fn decode<D: bincode::de::Decoder<Context = Context>>(
+        decoder: &mut D,
+    ) -> core::result::Result<Self, bincode::error::DecodeError> {
+        Ok(Self::from_repr(bincode::Decode::decode(decoder)?).unwrap())
+    }
+}
+
+impl<'de, Context> bincode::BorrowDecode<'de, Context> for Look {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
+        decoder: &mut D,
+    ) -> core::result::Result<Self, bincode::error::DecodeError> {
+        Ok(Self::from_repr(bincode::BorrowDecode::borrow_decode(decoder)?)
+            .unwrap())
     }
 }
 
