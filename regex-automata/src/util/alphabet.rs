@@ -40,6 +40,9 @@ make use of [`ByteClasses`] to visit each element in the DFA's alphabet instead
 of just visiting every distinct `u8` value. The latter isn't necessarily wrong,
 but it could be potentially very wasteful.
 */
+
+use serde::{Deserialize, Serialize};
+
 use crate::util::{
     escape::DebugByte,
     wire::{self, DeserializeError, SerializeError},
@@ -182,6 +185,56 @@ impl core::fmt::Debug for Unit {
     }
 }
 
+mod fixed_arr_serde {
+    use serde::{Deserializer, Serializer};
+    use std::fmt;
+
+    pub fn serialize<S>(arr: &[u8; 256], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(arr)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 256], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ByteClassesVisitor {
+            data: [u8; 256],
+        }
+        
+        let visitor = ByteClassesVisitor {
+            data: [0; 256],
+        };
+
+        impl<'de> serde::de::Visitor<'de> for ByteClassesVisitor {
+            type Value = [u8; 256];
+
+            fn expecting(&self, _formatter: &mut fmt::Formatter) -> fmt::Result {
+                unimplemented!()
+            }
+
+            fn visit_bytes<E>(mut self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.len() != 256 {
+                    return Err(E::invalid_length(v.len(), &self));
+                }
+
+                for (i, &byte) in v.iter().enumerate() {
+                    self.data[i] = byte;
+                }
+
+                Ok(self.data)
+            }
+        }
+
+        Ok(deserializer.deserialize_bytes(visitor)?)
+    }
+}
+
 /// A representation of byte oriented equivalence classes.
 ///
 /// This is used in a DFA to reduce the size of the transition table. This can
@@ -211,8 +264,9 @@ impl core::fmt::Debug for Unit {
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Clone, Copy)]
-pub struct ByteClasses([u8; 256]);
+#[derive(Clone, Copy, Serialize, Deserialize)]
+
+pub struct ByteClasses(#[serde(with = "fixed_arr_serde")] [u8; 256]);
 
 impl ByteClasses {
     /// Creates a new set of equivalence classes where all bytes are mapped to
@@ -681,7 +735,7 @@ impl<'a> Iterator for ByteClassElementRanges<'a> {
 /// representation here, which is only able to group contiguous bytes into the
 /// same equivalence class.)
 #[cfg(feature = "alloc")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct ByteClassSet(ByteSet);
 
 #[cfg(feature = "alloc")]
@@ -738,14 +792,14 @@ impl ByteClassSet {
 }
 
 /// A simple set of bytes that is reasonably cheap to copy and allocation free.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct ByteSet {
     bits: BitSet,
 }
 
 /// The representation of a byte set. Split out so that we can define a
 /// convenient Debug impl for it while keeping "ByteSet" in the output.
-#[derive(Clone, Copy, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
 struct BitSet([u128; 2]);
 
 impl ByteSet {

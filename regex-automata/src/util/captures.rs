@@ -42,6 +42,8 @@ use crate::util::{
     search::{Match, Span},
 };
 
+use serde::{Deserialize, Serialize};
+
 /// The span offsets of capturing groups after a match has been found.
 ///
 /// This type represents the output of regex engines that can report the
@@ -1447,7 +1449,7 @@ impl<'a> core::iter::FusedIterator for CapturesPatternIter<'a> {}
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct GroupInfo(Arc<GroupInfoInner>);
 
 impl GroupInfo {
@@ -2172,7 +2174,7 @@ type CaptureNameMap = alloc::collections::BTreeMap<Arc<str>, SmallIndex>;
 
 /// The inner guts of `GroupInfo`. This type only exists so that it can
 /// be wrapped in an `Arc` to make `GroupInfo` reference counted.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct GroupInfoInner {
     slot_ranges: Vec<(SmallIndex, SmallIndex)>,
     name_to_index: Vec<CaptureNameMap>,
