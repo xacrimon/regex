@@ -20,8 +20,6 @@ use crate::{
     },
 };
 
-use serde::{Deserialize, Serialize};
-
 /// A byte oriented Thompson non-deterministic finite automaton (NFA).
 ///
 /// A Thompson NFA is a finite state machine that permits unconditional epsilon
@@ -188,7 +186,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, bincode::Encode, bincode::Decode)]
 pub struct NFA(
     // We make NFAs reference counted primarily for two reasons. First is that
     // the NFA type itself is quite large (at least 0.5KB), and so it makes
@@ -1193,7 +1191,7 @@ impl fmt::Debug for NFA {
 /// NFA before finalizing it, but the high level construction process is
 /// controlled by the builder abstraction. (Which is complicated enough to
 /// get its own module.)
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, bincode::Encode, bincode::Decode)]
 pub(super) struct Inner {
     /// The state sequence. This sequence is guaranteed to be indexable by all
     /// starting state IDs, and it is also guaranteed to contain at most one
@@ -1510,7 +1508,7 @@ impl fmt::Debug for Inner {
 /// be aware of this type at all. The main use cases for looking at `State`s
 /// directly are if you need to write your own search implementation or if you
 /// need to do some kind of analysis on the NFA.
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, bincode::Encode, bincode::Decode)]
 pub enum State {
     /// A state with a single transition that can only be taken if the current
     /// input symbol is in a particular range of bytes.
@@ -1542,6 +1540,7 @@ pub enum State {
     Look {
         /// The look-around assertion that must be satisfied before moving
         /// to `next`.
+        #[bincode(with_serde)]
         look: Look,
         /// The state to transition to if the look-around assertion is
         /// satisfied.
@@ -1791,7 +1790,7 @@ impl fmt::Debug for State {
 /// byte ranges. If the byte at the current position in the haystack matches
 /// one of the byte ranges, then the finite state machine should take the
 /// corresponding transition.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, bincode::Encode, bincode::Decode)]
 pub struct SparseTransitions {
     /// The sorted sequence of non-overlapping transitions.
     pub transitions: Box<[Transition]>,
@@ -1878,7 +1877,7 @@ impl SparseTransitions {
 /// This is in contrast to `SparseTransitions`, whose time complexity is
 /// necessarily bigger than constant time. Also in contrast, `DenseTransitions`
 /// usually requires (much) more heap memory.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, bincode::Encode, bincode::Decode)]
 pub struct DenseTransitions {
     /// A dense representation of this state's transitions on the heap. This
     /// always has length 256.
@@ -1964,7 +1963,9 @@ impl DenseTransitions {
 ///
 /// This transition may only be followed if the current byte in the haystack
 /// falls in the inclusive range of bytes specified.
-#[derive(Clone, Copy, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Eq, Hash, PartialEq, bincode::Encode, bincode::Decode,
+)]
 pub struct Transition {
     /// The inclusive start of the byte range.
     pub start: u8,

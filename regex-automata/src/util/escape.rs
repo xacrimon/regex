@@ -10,14 +10,12 @@ representation.
 
 use crate::util::utf8;
 
-use serde::{Deserialize, Serialize};
-
 /// Provides a convenient `Debug` implementation for a `u8`.
 ///
 /// The `Debug` impl treats the byte as an ASCII, and emits a human readable
 /// representation of it. If the byte isn't ASCII, then it's emitted as a hex
 /// escape sequence.
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
 pub struct DebugByte(pub u8);
 
 impl core::fmt::Debug for DebugByte {

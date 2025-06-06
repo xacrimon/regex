@@ -36,8 +36,6 @@ use alloc::vec::Vec;
 
 use crate::util::int::{Usize, U16, U32, U64};
 
-use serde::{Deserialize, Serialize};
-
 /// A `usize` that can never be `usize::MAX`.
 ///
 /// This is similar to `core::num::NonZeroUsize`, but instead of not permitting
@@ -140,7 +138,17 @@ impl core::fmt::Debug for NonMaxUsize {
 /// an invalid value can be done in entirely safe code. This may in turn result
 /// in panics or silent logical errors.
 #[derive(
-    Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Eq,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    bincode::Encode,
+    bincode::Decode,
 )]
 #[repr(transparent)]
 pub struct SmallIndex(u32);
@@ -733,7 +741,18 @@ macro_rules! index_type_impls {
 /// Note that this type is defined in the
 /// [`util::primitives`](crate::util::primitives) module, but it is also
 /// re-exported at the crate root due to how common it is.
-#[derive(Clone, Copy, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Default,
+    Eq,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    bincode::Encode,
+    bincode::Decode,
+)]
 #[repr(transparent)]
 pub struct PatternID(SmallIndex);
 
@@ -748,7 +767,18 @@ pub struct PatternID(SmallIndex);
 ///
 /// See the [`SmallIndex`] type for more information about what it means for
 /// a state ID to be a "small index."
-#[derive(Clone, Copy, Default, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Default,
+    Eq,
+    Hash,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    bincode::Encode,
+    bincode::Decode,
+)]
 #[repr(transparent)]
 pub struct StateID(SmallIndex);
 

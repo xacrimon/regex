@@ -22,8 +22,6 @@ This module principally defines two types:
 
 use crate::util::{escape::DebugByte, utf8};
 
-use serde::{Deserialize, Serialize};
-
 /// A look-around assertion.
 ///
 /// An assertion matches at a position between characters in a haystack.
@@ -60,7 +58,9 @@ use serde::{Deserialize, Serialize};
 /// have epsilon transitions at all. In this case, they are compiled into the
 /// automaton itself, at the expense of more states than what would be required
 /// without an assertion.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize,
+)]
 pub enum Look {
     /// Match the beginning of text. Specifically, this matches at the starting
     /// position of the input.
@@ -242,7 +242,9 @@ impl Look {
 /// This is useful for efficiently tracking look-around assertions. For
 /// example, a [`thompson::NFA`](crate::nfa::thompson::NFA) provides properties
 /// that return `LookSet`s.
-#[derive(Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Default, Eq, PartialEq, bincode::Encode, bincode::Decode,
+)]
 pub struct LookSet {
     /// The underlying representation this set is exposed to make it possible
     /// to store it somewhere efficiently. The representation is that
@@ -575,7 +577,7 @@ impl Iterator for LookSetIter {
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, bincode::Encode, bincode::Decode)]
 pub struct LookMatcher {
     lineterm: DebugByte,
 }
