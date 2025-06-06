@@ -233,6 +233,55 @@ impl Look {
             Look::WordEndHalfUnicode => '▶',
         }
     }
+
+    #[inline]
+    fn as_compact_repr(self) -> u8 {
+        match self {
+            Look::Start => 1,
+            Look::End => 2,
+            Look::StartLF => 3,
+            Look::EndLF => 4,
+            Look::StartCRLF => 5,
+            Look::EndCRLF => 6,
+            Look::WordAscii => 7,
+            Look::WordAsciiNegate => 8,
+            Look::WordUnicode => 9,
+            Look::WordUnicodeNegate => 10,
+            Look::WordStartAscii => 11,
+            Look::WordEndAscii => 12,
+            Look::WordStartUnicode => 13,
+            Look::WordEndUnicode => 14,
+            Look::WordStartHalfAscii => 15,
+            Look::WordEndHalfAscii => 16,
+            Look::WordStartHalfUnicode => 17,
+            Look::WordEndHalfUnicode => 18,
+        }
+    }
+
+    #[inline]
+    fn from_compact_repr(val: u8) -> Option<Look> {
+        match val {
+            1 => Some(Look::Start),
+            2 => Some(Look::End),
+            3 => Some(Look::StartLF),
+            4 => Some(Look::EndLF),
+            5 => Some(Look::StartCRLF),
+            6 => Some(Look::EndCRLF),
+            7 => Some(Look::WordAscii),
+            8 => Some(Look::WordAsciiNegate),
+            9 => Some(Look::WordUnicode),
+            10 => Some(Look::WordUnicodeNegate),
+            11 => Some(Look::WordStartAscii),
+            12 => Some(Look::WordEndAscii),
+            13 => Some(Look::WordStartUnicode),
+            14 => Some(Look::WordEndUnicode),
+            15 => Some(Look::WordStartHalfAscii),
+            16 => Some(Look::WordEndHalfAscii),
+            17 => Some(Look::WordStartHalfUnicode),
+            18 => Some(Look::WordEndHalfUnicode),
+            _ => None,
+        }
+    }
 }
 
 impl bincode::Encode for Look {
@@ -240,7 +289,7 @@ impl bincode::Encode for Look {
         &self,
         encoder: &mut E,
     ) -> core::result::Result<(), bincode::error::EncodeError> {
-        let val = self.as_repr();
+        let val = self.as_compact_repr();
         bincode::Encode::encode(&val, encoder)?;
         Ok(())
     }
@@ -250,7 +299,7 @@ impl<Context> bincode::Decode<Context> for Look {
     fn decode<D: bincode::de::Decoder<Context = Context>>(
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
-        Ok(Self::from_repr(bincode::Decode::decode(decoder)?).unwrap())
+        Ok(Self::from_compact_repr(bincode::Decode::decode(decoder)?).unwrap())
     }
 }
 
@@ -258,7 +307,7 @@ impl<'de, Context> bincode::BorrowDecode<'de, Context> for Look {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = Context>>(
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
-        Ok(Self::from_repr(bincode::BorrowDecode::borrow_decode(decoder)?)
+        Ok(Self::from_compact_repr(bincode::BorrowDecode::borrow_decode(decoder)?)
             .unwrap())
     }
 }
