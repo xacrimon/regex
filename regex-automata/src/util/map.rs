@@ -36,6 +36,11 @@ type Table<K, V> = std::collections::HashMap<K, V, hash::RandomState>;
 #[cfg(not(feature = "std"))]
 type Table<K, V> = alloc::collections::BTreeMap<K, V>;
 
+#[cfg(feature = "std")]
+pub type Entry<'a, K, V> = std::collections::hash_map::Entry<'a, K, V>;
+#[cfg(not(feature = "std"))]
+pub type Entry<'a, K, V> = alloc::collections::btree_map::Entry<'a, K, V>;
+
 /// The `Map` type is a thin wrapper around either a `HashMap` or a `BTreeMap`
 /// depending on the build configuration.
 #[derive(Debug, Clone)]
@@ -115,6 +120,14 @@ where
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.table.is_empty()
+    }
+
+    #[inline]
+    pub fn entry(&mut self, key: K) -> Entry<K, V>
+    where
+        K: Eq + Hash,
+    {
+        self.table.entry(key)
     }
 }
 

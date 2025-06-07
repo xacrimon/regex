@@ -13,13 +13,12 @@ use crate::{
         builder::Builder,
         error::BuildError,
         literal_trie::LiteralTrie,
-        map::{Utf8SuffixKey, Utf8SuffixMap},
         nfa::{Transition, NFA},
         range_trie::RangeTrie,
     },
     util::{
         look::{Look, LookMatcher},
-        map::Map,
+        map::{Entry, Map},
         primitives::{PatternID, StateID},
     },
 };
@@ -588,6 +587,13 @@ impl WhichCaptures {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Utf8SuffixKey {
+    pub from: StateID,
+    pub start: u8,
+    pub end: u8,
+}
+
 /*
 This compiler below uses Thompson's construction algorithm. The compiler takes
 a regex-syntax::Hir as input and emits an NFA graph as output. The NFA graph
@@ -711,7 +717,7 @@ pub struct Compiler {
     trie_state: RefCell<RangeTrie>,
     /// State used for caching common suffixes when compiling reverse UTF-8
     /// automata (for Unicode character classes).
-    utf8_suffix: RefCell<Utf8SuffixMap>,
+    utf8_suffix: RefCell<Map<Utf8SuffixKey, StateID>>,
 }
 
 impl Compiler {
@@ -723,7 +729,7 @@ impl Compiler {
             builder: RefCell::new(Builder::new()),
             utf8_state: RefCell::new(Utf8State::new()),
             trie_state: RefCell::new(RangeTrie::new()),
-            utf8_suffix: RefCell::new(Utf8SuffixMap::new(1000)),
+            utf8_suffix: RefCell::new(Map::with_capacity(1000)),
         }
     }
 
@@ -1529,16 +1535,18 @@ impl Compiler {
                         start: brng.start,
                         end: brng.end,
                     };
-                    let hash = cache.hash(&key);
-                    if let Some(id) = cache.get(&key, hash) {
-                        end = id;
-                        continue;
-                    }
 
-                    let compiled = self.c_range(brng.start, brng.end)?;
-                    self.patch(compiled.end, end)?;
-                    end = compiled.start;
-                    cache.set(key, hash, end);
+                    match cache.entry(key) {
+                        Entry::Occupied(entry) => end = *entry.get(),
+                        Entry::Vacant(entry) => {
+                            let compiled =
+                                self.c_range(brng.start, brng.end)?;
+
+                            self.patch(compiled.end, end)?;
+                            end = compiled.start;
+                            entry.insert(end);
+                        }
+                    }
                 }
                 self.patch(union, end)?;
             }
@@ -1808,12 +1816,14 @@ impl<'a> Utf8Compiler<'a> {
         &mut self,
         node: Vec<Transition>,
     ) -> Result<StateID, BuildError> {
-        if let Some(&id) = self.state.compiled.get(&node) {
-            return Ok(id);
-        }
-        let id = self.builder.add_sparse(node.clone())?;
-        self.state.compiled.insert(node, id);
-        Ok(id)
+        Ok(match self.state.compiled.entry(node.clone()) {
+            Entry::Occupied(entry) => *entry.get(),
+            Entry::Vacant(entry) => {
+                let id = self.builder.add_sparse(node)?;
+                entry.insert(id);
+                id
+            }
+        })
     }
 
     fn add_suffix(&mut self, ranges: &[Utf8Range]) {

@@ -61,8 +61,6 @@ mod compiler;
 mod error;
 #[cfg(feature = "syntax")]
 mod literal_trie;
-#[cfg(feature = "syntax")]
-mod map;
 mod nfa;
 #[cfg(feature = "nfa-pikevm")]
 pub mod pikevm;
