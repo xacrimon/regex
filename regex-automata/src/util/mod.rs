@@ -37,6 +37,8 @@ pub mod iter;
 pub mod lazy;
 pub mod look;
 #[cfg(feature = "alloc")]
+pub mod map;
+#[cfg(feature = "alloc")]
 pub mod pool;
 pub mod prefilter;
 pub mod primitives;

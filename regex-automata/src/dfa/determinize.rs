@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 
 use crate::{
     dfa::{
@@ -10,6 +10,7 @@ use crate::{
         self,
         alphabet::{self, ByteSet},
         determinize::{State, StateBuilderEmpty, StateBuilderNFA},
+        map::Map,
         primitives::{PatternID, StateID},
         search::{Anchored, MatchKind},
         sparse_set::SparseSets,
@@ -49,7 +50,7 @@ impl Config {
     ) -> Result<(), BuildError> {
         let dead = State::dead();
         let quit = State::dead();
-        let mut cache = StateMap::default();
+        let mut cache = Map::default();
         // We only insert the dead state here since its representation is
         // identical to the quit state. And we never want anything pointing
         // to the quit state other than specific transitions derived from the
@@ -175,7 +176,7 @@ struct Runner<'a> {
     ///
     /// See `builder_states` docs for why we store states in two different
     /// ways.
-    cache: StateMap,
+    cache: Map<State, StateID>,
     /// The memory usage, in bytes, used by builder_states and cache. We track
     /// this as new states are added since states use a variable amount of
     /// heap. Tracking this as we add states makes it possible to compute the
@@ -196,17 +197,6 @@ struct Runner<'a> {
     /// create a new DFA state or not.
     scratch_state_builder: StateBuilderEmpty,
 }
-
-/// A map from states to state identifiers. When using std, we use a standard
-/// hashmap, since it's a bit faster for this use case. (Other maps, like
-/// one's based on FNV, have not yet been benchmarked.)
-///
-/// The main purpose of this map is to reuse states where possible. This won't
-/// fully minimize the DFA, but it works well in a lot of cases.
-#[cfg(feature = "std")]
-type StateMap = std::collections::HashMap<State, StateID>;
-#[cfg(not(feature = "std"))]
-type StateMap = BTreeMap<State, StateID>;
 
 impl<'a> Runner<'a> {
     /// Build the DFA. If there was a problem constructing the DFA (e.g., if
@@ -262,7 +252,7 @@ impl<'a> Runner<'a> {
         // A map from DFA state ID to one or more NFA match IDs. Each NFA match
         // ID corresponds to a distinct regex pattern that matches in the state
         // corresponding to the key.
-        let mut matches: BTreeMap<StateID, Vec<PatternID>> = BTreeMap::new();
+        let mut matches: Map<StateID, Vec<PatternID>> = Map::new();
         self.cache.clear();
         #[cfg(feature = "logging")]
         let mut total_pat_len = 0;
