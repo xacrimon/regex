@@ -22,6 +22,7 @@ use crate::{
         alphabet::{self, ByteClasses, ByteSet},
         determinize::{self, State, StateBuilderEmpty, StateBuilderNFA},
         empty,
+        map::Map,
         prefilter::Prefilter,
         primitives::{PatternID, StateID as NFAStateID},
         search::{
@@ -2070,10 +2071,7 @@ impl SearchProgress {
 ///
 /// The main purpose of this map is to reuse states where possible. This won't
 /// fully minimize the DFA, but it works well in a lot of cases.
-#[cfg(feature = "std")]
-type StateMap = std::collections::HashMap<State, LazyStateID>;
-#[cfg(not(feature = "std"))]
-type StateMap = alloc::collections::BTreeMap<State, LazyStateID>;
+type StateMap = Map<State, LazyStateID>;
 
 /// A type that groups methods that require the base NFA/DFA and writable
 /// access to the cache.
