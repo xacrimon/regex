@@ -1962,7 +1962,7 @@ impl DenseTransitions {
 ///
 /// This transition may only be followed if the current byte in the haystack
 /// falls in the inclusive range of bytes specified.
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct Transition {
     /// The inclusive start of the byte range.
     pub start: u8,

@@ -7,6 +7,9 @@ BTreeMap depending on if `std` is available or not.
 
 use core::{borrow::Borrow, hash::Hash};
 
+#[cfg(not(feature = "std"))]
+use foldhash::HashMapExt;
+
 #[cfg(feature = "std")]
 type Table<K, V> =
     std::collections::HashMap<K, V, foldhash::fast::RandomState>;
@@ -26,6 +29,18 @@ where
 {
     pub fn new() -> Self {
         Map { table: Table::default() }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Map {
+            #[cfg(feature = "std")]
+            table: Table::with_capacity_and_hasher(
+                capacity,
+                foldhash::fast::RandomState::default(),
+            ),
+            #[cfg(not(feature = "std"))]
+            table: Table::with_capacity(capacity),
+        }
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {

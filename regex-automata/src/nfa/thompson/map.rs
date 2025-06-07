@@ -39,14 +39,10 @@ use crate::{
     nfa::thompson::Transition,
     util::{
         int::{Usize, U64},
+        map::Map,
         primitives::StateID,
     },
 };
-
-// Basic FNV-1a hash constants as described in:
-// https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
-const PRIME: u64 = 1099511628211;
-const INIT: u64 = 14695981039346656037;
 
 /// A bounded hash map where the key is a sequence of NFA transitions and the
 /// value is a pre-existing NFA state ID.
@@ -79,32 +75,7 @@ const INIT: u64 = 14695981039346656037;
 /// amount of extra time they cost.
 #[derive(Clone, Debug)]
 pub struct Utf8BoundedMap {
-    /// The current version of this map. Only entries with matching versions
-    /// are considered during lookups. If an entry is found with a mismatched
-    /// version, then the map behaves as if the entry does not exist.
-    ///
-    /// This makes it possible to clear the map by simply incrementing the
-    /// version number instead of actually deallocating any storage.
-    version: u16,
-    /// The total number of entries this map can store.
-    capacity: usize,
-    /// The actual entries, keyed by hash. Collisions between different states
-    /// result in the old state being dropped.
-    map: Vec<Utf8BoundedEntry>,
-}
-
-/// An entry in this map.
-#[derive(Clone, Debug, Default)]
-struct Utf8BoundedEntry {
-    /// The version of the map used to produce this entry. If this entry's
-    /// version does not match the current version of the map, then the map
-    /// should behave as if this entry does not exist.
-    version: u16,
-    /// The key, which is a sorted sequence of non-overlapping NFA transitions.
-    key: Vec<Transition>,
-    /// The state ID corresponding to the state containing the transitions in
-    /// this entry.
-    val: StateID,
+    map: Map<Vec<Transition>, StateID>,
 }
 
 impl Utf8BoundedMap {
@@ -118,7 +89,7 @@ impl Utf8BoundedMap {
     /// compiling regexes that lack large Unicode character classes.
     pub fn new(capacity: usize) -> Utf8BoundedMap {
         assert!(capacity > 0);
-        Utf8BoundedMap { version: 0, capacity, map: vec![] }
+        Utf8BoundedMap { map: Map::with_capacity(capacity) }
     }
 
     /// Clear this map of all entries, but permit the reuse of allocation
@@ -126,28 +97,7 @@ impl Utf8BoundedMap {
     ///
     /// This must be called before the map can be used.
     pub fn clear(&mut self) {
-        if self.map.is_empty() {
-            self.map = vec![Utf8BoundedEntry::default(); self.capacity];
-        } else {
-            self.version = self.version.wrapping_add(1);
-            // If we loop back to version 0, then we forcefully clear the
-            // entire map. Otherwise, it might be possible to incorrectly
-            // match entries used to generate other NFAs.
-            if self.version == 0 {
-                self.map = vec![Utf8BoundedEntry::default(); self.capacity];
-            }
-        }
-    }
-
-    /// Return a hash of the given transitions.
-    pub fn hash(&self, key: &[Transition]) -> usize {
-        let mut h = INIT;
-        for t in key {
-            h = (h ^ u64::from(t.start)).wrapping_mul(PRIME);
-            h = (h ^ u64::from(t.end)).wrapping_mul(PRIME);
-            h = (h ^ t.next.as_u64()).wrapping_mul(PRIME);
-        }
-        (h % self.map.len().as_u64()).as_usize()
+        self.map.clear();
     }
 
     /// Retrieve the cached state ID corresponding to the given key. The hash
@@ -155,16 +105,8 @@ impl Utf8BoundedMap {
     ///
     /// If there is no cached state with the given transitions, then None is
     /// returned.
-    pub fn get(&mut self, key: &[Transition], hash: usize) -> Option<StateID> {
-        let entry = &self.map[hash];
-        if entry.version != self.version {
-            return None;
-        }
-        // There may be a hash collision, so we need to confirm real equality.
-        if entry.key != key {
-            return None;
-        }
-        Some(entry.val)
+    pub fn get(&mut self, key: &[Transition]) -> Option<StateID> {
+        self.map.get(key).copied()
     }
 
     /// Add a cached state to this map with the given key. Callers should
@@ -173,14 +115,8 @@ impl Utf8BoundedMap {
     ///
     /// `hash` must have been computed using the `hash` method with the same
     /// key.
-    pub fn set(
-        &mut self,
-        key: Vec<Transition>,
-        hash: usize,
-        state_id: StateID,
-    ) {
-        self.map[hash] =
-            Utf8BoundedEntry { version: self.version, key, val: state_id };
+    pub fn set(&mut self, key: Vec<Transition>, state_id: StateID) {
+        self.map.insert(key, state_id);
     }
 }
 

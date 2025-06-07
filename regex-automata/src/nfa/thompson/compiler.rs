@@ -1807,12 +1807,11 @@ impl<'a> Utf8Compiler<'a> {
         &mut self,
         node: Vec<Transition>,
     ) -> Result<StateID, BuildError> {
-        let hash = self.state.compiled.hash(&node);
-        if let Some(id) = self.state.compiled.get(&node, hash) {
+        if let Some(id) = self.state.compiled.get(&node) {
             return Ok(id);
         }
         let id = self.builder.add_sparse(node.clone())?;
-        self.state.compiled.set(node, hash, id);
+        self.state.compiled.set(node, id);
         Ok(id)
     }
 
