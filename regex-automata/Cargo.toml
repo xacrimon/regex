@@ -20,7 +20,7 @@ bench = false
 # of each and when you might want to use them.
 [features]
 default = ["std", "syntax", "perf", "unicode", "meta", "nfa", "dfa", "hybrid"]
-std = ["regex-syntax?/std", "memchr?/std", "aho-corasick?/std", "alloc", "foldhash/std"]
+std = ["regex-syntax?/std", "memchr?/std", "aho-corasick?/std", "alloc"]
 alloc = []
 logging = ["dep:log", "aho-corasick?/logging", "memchr?/logging"]
 

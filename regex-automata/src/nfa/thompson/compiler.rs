@@ -13,12 +13,13 @@ use crate::{
         builder::Builder,
         error::BuildError,
         literal_trie::LiteralTrie,
-        map::{Utf8BoundedMap, Utf8SuffixKey, Utf8SuffixMap},
+        map::{Utf8SuffixKey, Utf8SuffixMap},
         nfa::{Transition, NFA},
         range_trie::RangeTrie,
     },
     util::{
         look::{Look, LookMatcher},
+        map::Map,
         primitives::{PatternID, StateID},
     },
 };
@@ -1731,7 +1732,7 @@ struct Utf8Compiler<'a> {
 
 #[derive(Clone, Debug)]
 struct Utf8State {
-    compiled: Utf8BoundedMap,
+    compiled: Map<Vec<Transition>, StateID>,
     uncompiled: Vec<Utf8Node>,
 }
 
@@ -1749,7 +1750,7 @@ struct Utf8LastTransition {
 
 impl Utf8State {
     fn new() -> Utf8State {
-        Utf8State { compiled: Utf8BoundedMap::new(10_000), uncompiled: vec![] }
+        Utf8State { compiled: Map::with_capacity(10_000), uncompiled: vec![] }
     }
 
     fn clear(&mut self) {
@@ -1807,11 +1808,11 @@ impl<'a> Utf8Compiler<'a> {
         &mut self,
         node: Vec<Transition>,
     ) -> Result<StateID, BuildError> {
-        if let Some(id) = self.state.compiled.get(&node) {
+        if let Some(&id) = self.state.compiled.get(&node) {
             return Ok(id);
         }
         let id = self.builder.add_sparse(node.clone())?;
-        self.state.compiled.set(node, id);
+        self.state.compiled.insert(node, id);
         Ok(id)
     }
 

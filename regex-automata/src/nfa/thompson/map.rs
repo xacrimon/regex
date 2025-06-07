@@ -35,90 +35,10 @@
 
 use alloc::{vec, vec::Vec};
 
-use crate::{
-    nfa::thompson::Transition,
-    util::{
-        int::{Usize, U64},
-        map::Map,
-        primitives::StateID,
-    },
+use crate::util::{
+    int::{Usize, U64},
+    primitives::StateID,
 };
-
-/// A bounded hash map where the key is a sequence of NFA transitions and the
-/// value is a pre-existing NFA state ID.
-///
-/// std's hashmap can be used for this, however, this map has two important
-/// advantages. Firstly, it has lower overhead. Secondly, it permits us to
-/// control our memory usage by limited the number of slots. In general, the
-/// cost here is that this map acts as a cache. That is, inserting a new entry
-/// may remove an old entry. We are okay with this, since it does not impact
-/// correctness in the cases where it is used. The only effect that dropping
-/// states from the cache has is that the resulting NFA generated may be bigger
-/// than it otherwise would be.
-///
-/// This improves benchmarks that compile large Unicode character classes,
-/// since it makes the generation of (almost) minimal UTF-8 automaton faster.
-/// Specifically, one could observe the difference with std's hashmap via
-/// something like the following benchmark:
-///
-///   hyperfine "regex-cli debug thompson -qr --captures none '\w{90} ecurB'"
-///
-/// But to observe that difference, you'd have to modify the code to use
-/// std's hashmap.
-///
-/// It is quite possible that there is a better way to approach this problem.
-/// For example, if there happens to be a very common state that collides with
-/// a lot of less frequent states, then we could wind up with very poor caching
-/// behavior. Alas, the effectiveness of this cache has not been measured.
-/// Instead, ad hoc experiments suggest that it is "good enough." Additional
-/// smarts (such as an LRU eviction policy) have to be weighed against the
-/// amount of extra time they cost.
-#[derive(Clone, Debug)]
-pub struct Utf8BoundedMap {
-    map: Map<Vec<Transition>, StateID>,
-}
-
-impl Utf8BoundedMap {
-    /// Create a new bounded map with the given capacity. The map will never
-    /// grow beyond the given size.
-    ///
-    /// Note that this does not allocate. Instead, callers must call `clear`
-    /// before using this map. `clear` will allocate space if necessary.
-    ///
-    /// This avoids the need to pay for the allocation of this map when
-    /// compiling regexes that lack large Unicode character classes.
-    pub fn new(capacity: usize) -> Utf8BoundedMap {
-        assert!(capacity > 0);
-        Utf8BoundedMap { map: Map::with_capacity(capacity) }
-    }
-
-    /// Clear this map of all entries, but permit the reuse of allocation
-    /// if possible.
-    ///
-    /// This must be called before the map can be used.
-    pub fn clear(&mut self) {
-        self.map.clear();
-    }
-
-    /// Retrieve the cached state ID corresponding to the given key. The hash
-    /// given must have been computed with `hash` using the same key value.
-    ///
-    /// If there is no cached state with the given transitions, then None is
-    /// returned.
-    pub fn get(&mut self, key: &[Transition]) -> Option<StateID> {
-        self.map.get(key).copied()
-    }
-
-    /// Add a cached state to this map with the given key. Callers should
-    /// ensure that `state_id` points to a state that contains precisely the
-    /// NFA transitions given.
-    ///
-    /// `hash` must have been computed using the `hash` method with the same
-    /// key.
-    pub fn set(&mut self, key: Vec<Transition>, state_id: StateID) {
-        self.map.insert(key, state_id);
-    }
-}
 
 /// A cache of suffixes used to modestly compress UTF-8 automata for large
 /// Unicode character classes.
