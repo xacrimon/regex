@@ -12,7 +12,11 @@ use core::cmp;
 use core::{fmt, iter, mem::size_of, slice};
 
 #[cfg(feature = "dfa-build")]
-use alloc::{collections::BTreeSet, vec, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    vec,
+    vec::Vec,
+};
 
 #[cfg(feature = "dfa-build")]
 use crate::{
@@ -34,7 +38,6 @@ use crate::{
     util::{
         alphabet::{self, ByteClasses, ByteSet},
         int::{Pointer, Usize},
-        map::Map,
         prefilter::Prefilter,
         primitives::{PatternID, StateID},
         search::Anchored,
@@ -2566,7 +2569,7 @@ impl OwnedDFA {
     /// often easier to work with the map form.
     pub(crate) fn set_pattern_map(
         &mut self,
-        map: &Map<StateID, Vec<PatternID>>,
+        map: &BTreeMap<StateID, Vec<PatternID>>,
     ) -> Result<(), BuildError> {
         self.ms = self.ms.new_with_map(map)?;
         Ok(())
@@ -2581,7 +2584,7 @@ impl OwnedDFA {
         }
 
         // Go through every state and record their accelerator, if possible.
-        let mut accels = Map::new();
+        let mut accels = BTreeMap::new();
         // Count the number of accelerated match, start and non-match/start
         // states.
         let (mut cmatch, mut cstart, mut cnormal) = (0, 0, 0);
@@ -2795,7 +2798,7 @@ impl OwnedDFA {
     /// See dfa/special.rs for more details.
     pub(crate) fn shuffle(
         &mut self,
-        mut matches: Map<StateID, Vec<PatternID>>,
+        mut matches: BTreeMap<StateID, Vec<PatternID>>,
     ) -> Result<(), BuildError> {
         // The determinizer always adds a quit state and it is always second.
         self.special.quit_id = self.to_state_id(1);
@@ -2843,7 +2846,7 @@ impl OwnedDFA {
             // dead and quit states, respectively. We want our match states to
             // come right after quit.
             let mut next_id = self.to_state_id(2);
-            let mut new_matches = Map::new();
+            let mut new_matches = BTreeMap::new();
             self.special.min_match = next_id;
             for (id, pids) in matches {
                 remapper.swap(self, next_id, id);
@@ -2998,7 +3001,7 @@ impl<T: AsRef<[u32]>> DFA<T> {
     /// Returns a map from match state ID to a list of pattern IDs that match
     /// in that state.
     #[cfg(feature = "dfa-build")]
-    pub(crate) fn pattern_map(&self) -> Map<StateID, Vec<PatternID>> {
+    pub(crate) fn pattern_map(&self) -> BTreeMap<StateID, Vec<PatternID>> {
         self.ms.to_map(self)
     }
 
@@ -4426,7 +4429,7 @@ impl MatchStates<Vec<u32>> {
     }
 
     fn new(
-        matches: &Map<StateID, Vec<PatternID>>,
+        matches: &BTreeMap<StateID, Vec<PatternID>>,
         pattern_len: usize,
     ) -> Result<MatchStates<Vec<u32>>, BuildError> {
         let mut m = MatchStates::empty(pattern_len);
@@ -4451,7 +4454,7 @@ impl MatchStates<Vec<u32>> {
 
     fn new_with_map(
         &self,
-        matches: &Map<StateID, Vec<PatternID>>,
+        matches: &BTreeMap<StateID, Vec<PatternID>>,
     ) -> Result<MatchStates<Vec<u32>>, BuildError> {
         MatchStates::new(matches, self.pattern_len)
     }
@@ -4556,8 +4559,8 @@ impl<T: AsRef<[u32]>> MatchStates<T> {
     ///
     /// Once shuffling is done, use MatchStates::new to convert back.
     #[cfg(feature = "dfa-build")]
-    fn to_map(&self, dfa: &DFA<T>) -> Map<StateID, Vec<PatternID>> {
-        let mut map = Map::new();
+    fn to_map(&self, dfa: &DFA<T>) -> BTreeMap<StateID, Vec<PatternID>> {
+        let mut map = BTreeMap::new();
         for i in 0..self.len() {
             let mut pids = vec![];
             for j in 0..self.pattern_len(i) {

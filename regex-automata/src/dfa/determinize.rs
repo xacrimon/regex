@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
     dfa::{
@@ -252,7 +252,7 @@ impl<'a> Runner<'a> {
         // A map from DFA state ID to one or more NFA match IDs. Each NFA match
         // ID corresponds to a distinct regex pattern that matches in the state
         // corresponding to the key.
-        let mut matches: Map<StateID, Vec<PatternID>> = Map::new();
+        let mut matches: BTreeMap<StateID, Vec<PatternID>> = BTreeMap::new();
         self.cache.clear();
         #[cfg(feature = "logging")]
         let mut total_pat_len = 0;

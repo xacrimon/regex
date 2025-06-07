@@ -36,6 +36,7 @@ use alloc::{string::String, sync::Arc, vec, vec::Vec};
 
 use crate::util::{
     interpolate,
+    map::Map,
     primitives::{
         NonMaxUsize, PatternID, PatternIDError, PatternIDIter, SmallIndex,
     },
@@ -2165,10 +2166,7 @@ impl GroupInfo {
 /// type or something? Anyway, I didn't give this much thought since it
 /// probably doesn't matter much in the grand scheme of things. But it did
 /// stand out to me as mildly wasteful.
-#[cfg(feature = "std")]
-type CaptureNameMap = std::collections::HashMap<Arc<str>, SmallIndex>;
-#[cfg(not(feature = "std"))]
-type CaptureNameMap = alloc::collections::BTreeMap<Arc<str>, SmallIndex>;
+type CaptureNameMap = Map<Arc<str>, SmallIndex>;
 
 /// The inner guts of `GroupInfo`. This type only exists so that it can
 /// be wrapped in an `Arc` to make `GroupInfo` reference counted.

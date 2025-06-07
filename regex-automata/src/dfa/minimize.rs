@@ -6,7 +6,6 @@ use crate::{
     dfa::{automaton::Automaton, dense, DEAD},
     util::{
         alphabet,
-        map::Map,
         primitives::{PatternID, StateID},
     },
 };
@@ -219,7 +218,7 @@ impl<'a> Minimizer<'a> {
         // need to do is remap the match state IDs. The pattern ID lists are
         // always the same as they were since match states with distinct
         // pattern ID lists are always considered distinct states.
-        let mut pmap = Map::new();
+        let mut pmap = BTreeMap::new();
         for (match_id, pattern_ids) in self.dfa.pattern_map() {
             let new_id = remap(match_id);
             pmap.insert(new_id, pattern_ids);
